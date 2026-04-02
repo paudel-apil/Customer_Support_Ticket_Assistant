@@ -35,7 +35,7 @@ Support_Ticket_Intelligence_Assistant/
 ├── streamlit_app/
 │   └── app.py
 ├── ml/
-│   └── clustering/
+│   └── artifacts/
 │       ├── embeddings.npy
 │       ├── merged_category.csv
 │       └── cluster_names.json
