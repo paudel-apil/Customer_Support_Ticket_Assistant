@@ -1,0 +1,42 @@
+[
+  {
+    "customer_id": "CUST-TEST-040",
+    "title": "Refund request for duplicate charge",
+    "description": "I was charged twice for my last purchase. Could you please review the transaction and issue a refund for the duplicate charge?"
+  },
+  {
+    "customer_id": "CUST-TEST-041",
+    "title": "Unable to login to my account",
+    "description": "I'm trying to access my account but the system keeps saying my password is incorrect even after resetting it. Please help me regain access."
+  },
+  {
+    "customer_id": "CUST-TEST-042",
+    "title": "Update billing information",
+    "description": "I recently changed my credit card and would like to update my billing details to avoid any interruption in my subscription."
+  },
+  {
+    "customer_id": "CUST-TEST-043",
+    "title": "Feature request for dark mode",
+    "description": "It would be great if the platform supported a dark mode option. This would make it easier to use at night."
+  },
+  {
+    "customer_id": "CUST-TEST-044",
+    "title": "Report a bug in dashboard",
+    "description": "The dashboard analytics page fails to load and shows a blank screen after I click the reports tab. Please investigate."
+  },
+  {
+    "customer_id": "CUST-TEST-045",
+    "title": "Change account email",
+    "description": "I want to update the email associated with my account because I no longer have access to my old email address."
+  },
+  {
+    "customer_id": "CUST-TEST-046",
+    "title": "Subscription upgrade inquiry",
+    "description": "I am interested in upgrading from the basic plan to the premium plan. Could you provide details on pricing and benefits?"
+  },
+  {
+    "customer_id": "CUST-TEST-047",
+    "title": "Payment failed during checkout",
+    "description": "My payment keeps failing when I try to complete the checkout process. I've tried two different cards but neither worked."
+  }
+]
