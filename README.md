@@ -190,8 +190,3 @@ SECRET_KEY=your-secret-key
 
 ---
 
-##  Notes
-
-- ML artifacts (`*.npy`, `*.joblib`, `*.csv`) are excluded from git. See `ml/` for instructions on regenerating them.
-- The embedding model (`bge-large-en-v1.5`) is downloaded on first build — this may take a few minutes.
-- First ticket creation after a cold start may be slow (~30s) while the model warms up.
