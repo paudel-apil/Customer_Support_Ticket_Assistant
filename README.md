@@ -1,106 +1,197 @@
-# Support Ticket Intelligence Assistant
+#  Support Ticket Intelligence Assistant
 
-A modern, unsupervised support ticket system that automatically organizes tickets into meaningful categories using embeddings and similarity search.
+An unsupervised ML system that automatically classifies support tickets into meaningful categories using semantic embeddings and vector similarity search — no labeled training data required.
 
-## Features
+---
 
-- **Unsupervised Classification**: Automatically assigns tickets to one of 15 intelligent categories using embeddings + similarity search
-- **Semantic Similarity Search**: Find similar past tickets using Qdrant vector database
-- **FastAPI Backend**: Clean REST API with Swagger documentation
-- **PostgreSQL**: Persistent ticket storage
-- **Qdrant**: High-performance vector search
-- **Streamlit UI**: Simple and clean interface for creating and viewing tickets
-- **Docker Support**: Full containerized deployment
+##  Features
 
-## Tech Stack
+| Feature | Description |
+|---|---|
+|  Unsupervised Classification | Assigns tickets to categories via embedding similarity — no labels needed |
+|  Semantic Search | Finds similar past tickets using Qdrant vector search |
+|  FastAPI Backend | Clean REST API with auto-generated Swagger docs |
+|  PostgreSQL | Persistent relational ticket storage |
+|  Qdrant | High-performance vector database for similarity search |
+|  Streamlit UI | Simple interface for creating and browsing tickets |
+|  Docker | Fully containerized — one command to run everything |
 
-- **Backend**: FastAPI + Uvicorn
-- **Database**: PostgreSQL + SQLAlchemy
-- **Vector DB**: Qdrant
-- **Embeddings**: `BAAI/bge-large-en-v1.5`
-- **Frontend**: Streamlit
-- **Deployment**: Docker + Docker Compose
+---
 
-## Project Structure
+##  Quick Start
 
+### Prerequisites
+- [Docker](https://docs.docker.com/get-docker/) and Docker Compose installed
+
+### Run with Docker
+```bash
+git clone https://github.com/yourusername/support-ticket-assistant.git
+cd support-ticket-assistant
+
+cp .env.example .env   # fill in your values
+
+docker compose up --build
+```
+
+| Service | URL |
+|---|---|
+| Streamlit UI | http://localhost:8501 |
+| FastAPI Docs | http://localhost:8000/docs |
+| Qdrant Dashboard | http://localhost:6333/dashboard |
+
+---
+
+## 🛠️ Local Development (without Docker)
+
+**1. Start Qdrant**
+```bash
+docker run -d -p 6333:6333 -p 6334:6334 --name qdrant qdrant/qdrant:latest
+```
+
+**2. Install dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+**3. Start FastAPI**
+```bash
+uvicorn app.main:app --reload --port 8000
+```
+
+**4. Start Streamlit**
+```bash
+streamlit run streamlit_app/app.py
+```
+
+---
+
+##  Project Structure
 ```text
-Support_Ticket_Intelligence_Assistant/
+support-ticket-assistant/
 ├── app/
-│   ├── main.py
-│   ├── core/
-│   ├── db/
-│   ├── schemas/
-│   ├── services/
-│   └── api/
-├── streamlit_app/
-│   └── app.py
+│   ├── main.py                  # FastAPI entry point
+│   ├── core/                    # Config, Qdrant client
+│   ├── db/                      # SQLAlchemy models & session
+│   ├── schemas/                 # Pydantic schemas
+│   ├── services/                # Business logic, ML inference
+│   └── api/v1/tickets.py        # Route handlers
 ├── ml/
-│   └── artifacts/
-│       ├── embeddings.npy
-│       ├── merged_category.csv
-│       └── cluster_names.json
+│   └── artifacts/               # Embeddings, cluster names, models (not tracked in git)
+├── streamlit_app/
+│   └── app.py                   # Streamlit frontend
 ├── Dockerfile
 ├── Dockerfile.streamlit
 ├── docker-compose.yml
 ├── requirements.txt
-└── README.md
-
+└── .env.example
 ```
-Quick Start (Local)
 
-Start the services:
-docker-compose up --build
+---
 
-Open:
-FastAPI: http://localhost:8000/docs
-Streamlit: http://localhost:8501
+## 🔌 API Reference
 
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/v1/tickets/` | Create and classify a new ticket |
+| `GET` | `/api/v1/tickets/` | List all tickets (filterable by category/priority) |
+| `GET` | `/api/v1/tickets/{id}/similar` | Find semantically similar tickets |
+| `POST` | `/api/v1/tickets/classify` | Classify text without saving |
 
-Manual Local Setup (without Docker)
+Full interactive docs at **http://localhost:8000/docs**
 
-Start Qdrant:Bashdocker run -d -p 6333:6333 -p 6334:6334 --name qdrant qdrant/qdrant:latest
-Start FastAPI:Bashuvicorn app.main:app --reload --port 8000
-Start Streamlit:Bashstreamlit run streamlit_app/app.py
+---
 
-API Endpoints
+##  Ticket Categories
 
-POST /tickets/ → Create a new ticket
-POST /tickets/classify → Classify a ticket into one of 15 categories
-GET /tickets/{id}/similar → Find similar tickets
-GET /tickets/ → List all tickets
+The system automatically classifies tickets into 10 categories:
 
-Categories
-The system automatically classifies tickets into these 10 generic categories:
+-  Data Security & Compliance
+-  Financial Analytics & Investment Insights
+-  Billing, Payments & Subscription Management
+-  Platform Operations & System Performance
+-  Platform Integration & Workflow Optimization
+-  Security & Data Breach Concerns
+-  Network & Connectivity Operations
+-  Hardware & End-User Device Support
+-  User Onboarding & Training
+-  General Operational Support
 
-Security & Data Breach Concerns
-Platform Operations & System Performance    
-Data Security & Compliance                   
-Financial Analytics & Investment Insights     
-Platform Integration & Workflow Optimization  
-Marketing, Strategy & Client Experience        
-Billing, Payments & Subscription Management     
-Hardware & End-User Device Support              
-Network & Connectivity Operations              
-General Operational Support                     
-User Onboarding & Training    
+---
 
-How It Works
+##  How It Works
+```
+New Ticket
+    │
+    ▼
+Text Cleaning & Preprocessing
+    │
+    ▼
+Embedding Generation (BAAI/bge-large-en-v1.5)
+    │
+    ▼
+Qdrant Similarity Search (top-3 nearest neighbors)
+    │
+    ▼
+Category assigned from nearest neighbor cluster
+    │
+    ▼
+Priority predicted (TF-IDF + Linear model)
+    │
+    ▼
+Ticket + Embedding stored → available for future searches
+```
 
-New ticket → Text is cleaned using the same preprocessing as training
-Embedding is generated using BAAI/bge-large-en-v1.5
-System finds top 5 most similar past tickets in Qdrant
-Majority category from similar tickets is assigned
-Ticket and embedding are stored for future similarity searches
+---
 
-Docker Commands
-Bash# Start all services
-docker-compose up --build
+##  Tech Stack
 
-# Start in background
-docker-compose up -d --build
+- **Backend**: FastAPI + Uvicorn
+- **Database**: PostgreSQL + SQLAlchemy
+- **Vector DB**: Qdrant
+- **Embeddings**: `BAAI/bge-large-en-v1.5` (SentenceTransformers)
+- **Priority Model**: TF-IDF + Logistic Regression
+- **Frontend**: Streamlit
+- **Deployment**: Docker + Docker Compose
 
-# Stop services
-docker-compose down
+---
+
+##  Docker Commands
+```bash
+# Start all services
+docker compose up --build
+
+# Run in background
+docker compose up -d --build
 
 # View logs
-docker-compose logs -f
+docker compose logs -f
+
+# View logs for a specific service
+docker compose logs -f backend
+
+# Stop all services
+docker compose down
+
+# Stop and remove volumes (resets DB + Qdrant)
+docker compose down -v
+```
+
+---
+
+##  Environment Variables
+
+Create a `.env` file based on `.env.example`:
+```env
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=yourpassword
+POSTGRES_DB=tickets
+SECRET_KEY=your-secret-key
+```
+
+---
+
+##  Notes
+
+- ML artifacts (`*.npy`, `*.joblib`, `*.csv`) are excluded from git. See `ml/` for instructions on regenerating them.
+- The embedding model (`bge-large-en-v1.5`) is downloaded on first build — this may take a few minutes.
+- First ticket creation after a cold start may be slow (~30s) while the model warms up.
