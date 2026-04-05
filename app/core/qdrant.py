@@ -5,6 +5,9 @@ from app.core.config import settings
 qdrant = QdrantClient(":memory:")
 
 def init_qdrant():
+    """
+    Initialization of qdrant on memory
+    """
     try:
         collections = qdrant.get_collections()
         collection_names = [c.name for c in collections.collections]
