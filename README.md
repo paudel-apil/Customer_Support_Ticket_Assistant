@@ -2,6 +2,8 @@
 
 An unsupervised ML system that automatically classifies support tickets into meaningful categories using semantic embeddings and vector similarity search.
 
+**Live Demo:** [Streamlit UI](https://paudelapil-support-ticket-frontend.hf.space) | [API Docs](https://paudelapil-support-ticket-backend.hf.space/docs)
+
 ---
 
 ## Features
@@ -11,15 +13,40 @@ An unsupervised ML system that automatically classifies support tickets into mea
 | Unsupervised Classification | Assigns tickets to categories via UMAP + HDBSCAN clustering — no labels needed |
 | Semantic Similarity Search | Finds similar past tickets using Qdrant vector search |
 | FastAPI Backend | Clean REST API with auto-generated Swagger docs |
-| PostgreSQL | Persistent relational ticket storage |
+| PostgreSQL | Persistent relational ticket storage via Supabase |
 | Qdrant | High-performance vector database for similarity search |
 | Streamlit UI | Simple interface for creating and browsing tickets |
-| Docker | Fully containerized — one command to run everything |
+| Docker | Fully containerized — one command to run everything locally |
+
+---
+
+## Architecture
+
+```
+┌─────────────────────┐       ┌─────────────────────┐
+│   Streamlit UI      │──────▶│   FastAPI Backend   │
+│  (HF Spaces)        │       │   (HF Spaces)       │
+└─────────────────────┘       └──────────┬──────────┘
+                                          │
+                          ┌───────────────┼───────────────┐
+                          │               │               │
+                   ┌──────▼─────┐  ┌─────▼──────┐  ┌────▼────────┐
+                   │ PostgreSQL │  │   Qdrant   │  │  ML Models  │
+                   │ (Supabase) │  │  (Cloud)   │  │  (joblib)   │
+                   └────────────┘  └────────────┘  └─────────────┘
+```
 
 ---
 
 ## Quick Start
-### Run with Docker
+
+### Option 1 — Use the Live Demo
+Visit [https://paudelapil-support-ticket-frontend.hf.space](https://paudelapil-support-ticket-frontend.hf.space) — no setup needed.
+
+### Option 2 — Run Locally with Docker
+
+**Prerequisites:** Docker and Docker Compose installed
+
 ```bash
 git clone https://github.com/yourusername/support-ticket-assistant.git
 cd support-ticket-assistant
@@ -37,7 +64,7 @@ docker compose up --build
 
 ---
 
-## 🛠️ Local Development (without Docker)
+## Local Development (without Docker)
 
 **1. Start Qdrant and PostgreSQL**
 ```bash
@@ -57,7 +84,7 @@ python -m uvicorn app.main:app --reload
 
 **4. Start Streamlit**
 ```bash
-streamlit run app/streamlit_app/app.py
+streamlit run app/streamlit_app/streamlit_app.py
 ```
 
 ---
@@ -74,7 +101,9 @@ support-ticket-assistant/
 │   ├── services/
 │   │   ├── ticket_services.py     # Business logic, ML inference
 │   │   └── preprocessing.py       # Text cleaning
-│   └── api/v1/tickets.py          # Route handlers
+│   ├── api/v1/tickets.py          # Route handlers
+│   └── streamlit_app/
+│       └── streamlit_app.py       # Streamlit frontend
 ├── ml/
 │   └── artifacts/                 # Model files (not tracked in git)
 │       ├── umap_surrogate.joblib  # MLP surrogate for UMAP inference
@@ -85,11 +114,11 @@ support-ticket-assistant/
 │       ├── desc_cats.csv
 │       ├── multi_lin_prio_model.joblib
 │       └── multi_lin_tfidf_vec.joblib
-├── Dockerfile
-├── Dockerfile.streamlit
+├── Dockerfile                     # Backend Docker image
+├── Dockerfile.streamlit           # Frontend Docker image
 ├── docker-compose.yml
 ├── requirements.txt
-└── .env
+└── .env.example
 ```
 
 ---
@@ -103,7 +132,7 @@ support-ticket-assistant/
 | `GET` | `/api/v1/tickets/{id}/similar` | Find semantically similar tickets |
 | `POST` | `/api/v1/tickets/classify` | Classify text without saving |
 
-Full interactive docs at **http://localhost:8000/docs**
+Full interactive docs at **https://paudelapil-support-ticket-backend.hf.space/docs**
 
 ---
 
@@ -180,17 +209,28 @@ Ticket + 5D embedding stored for future similarity searches
 ## Tech Stack
 
 - **Backend**: FastAPI + Uvicorn
-- **Database**: PostgreSQL + SQLAlchemy
-- **Vector DB**: Qdrant
+- **Database**: PostgreSQL + SQLAlchemy (hosted on Supabase)
+- **Vector DB**: Qdrant Cloud
 - **Embeddings**: `BAAI/bge-large-en-v1.5` (SentenceTransformers)
 - **Clustering**: cuML UMAP + HDBSCAN (Colab/GPU)
 - **Inference**: MLP Surrogate (scikit-learn) + TF-IDF + Logistic Regression
 - **Frontend**: Streamlit
-- **Deployment**: Docker + Docker Compose
+- **Deployment**: Hugging Face Spaces + Docker
 
 ---
 
-## Docker Commands
+## Deployment
+
+| Service | Platform | URL |
+|---|---|---|
+| Frontend | Hugging Face Spaces | https://paudelapil-support-ticket-frontend.hf.space |
+| Backend | Hugging Face Spaces | https://paudelapil-support-ticket-backend.hf.space |
+| Database | Supabase (PostgreSQL) | — |
+| Vector DB | Qdrant Cloud | — |
+
+---
+
+## Local Docker Commands
 
 ```bash
 # Start all services
@@ -219,8 +259,21 @@ docker compose down -v
 Create a `.env` file based on `.env.example`:
 
 ```env
+SECRET_KEY=your-secret-key
+DATABASE_URL=postgresql://postgres:yourpassword@pooler.supabase.com:5432/postgres
+QDRANT_URL=https://your-cluster.qdrant.io
+QDRANT_API_KEY=your-qdrant-api-key
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=yourpassword
-POSTGRES_DB=tickets
-SECRET_KEY=your-secret-key
+POSTGRES_DB=postgres
 ```
+
+---
+
+## Notes
+
+- ML artifacts (`*.npy`, `*.joblib`, `*.csv`) are excluded from git. Regenerate them by running the Colab notebook in `ml/`.
+- The embedding model (`bge-large-en-v1.5`) is downloaded on first build — allow a few extra minutes.
+- First ticket creation after a cold start may be slow (~30s) while the embedding model warms up. Subsequent requests are fast.
+- The MLP surrogate approximates UMAP projection for inference, avoiding the GPU/RAM requirements of the full UMAP model in production.
+- Supabase free tier uses IPv6, use the **Session Pooler** connection string to ensure IPv4 compatibility with Docker.
