@@ -272,7 +272,6 @@ POSTGRES_DB=postgres
 
 ## Notes
 
-- ML artifacts (`*.npy`, `*.joblib`, `*.csv`) are excluded from git. Regenerate them by running the Colab notebook in `ml/`.
 - The embedding model (`bge-large-en-v1.5`) is downloaded on first build — allow a few extra minutes.
 - First ticket creation after a cold start may be slow (~30s) while the embedding model warms up. Subsequent requests are fast.
 - The MLP surrogate approximates UMAP projection for inference, avoiding the GPU/RAM requirements of the full UMAP model in production.
