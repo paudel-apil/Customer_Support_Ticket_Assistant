@@ -31,12 +31,21 @@ descriptions = desc_cat_df['description'].tolist()
 
 
 def _embed_and_reduce(text: str) -> list:
+    """
+    Generate a reduced-dimensional embedding for the given ticket description.
+    """
     raw = embedder.encode(text, normalize_embeddings=True).reshape(1, -1)
     reduced = umap_model.predict(raw) 
     return reduced[0].tolist()
 
 
 def _get_category_from_points(points) -> str:
+    """
+    Determine the most likely category from retrieved vector search points. 
+
+    Extracts cluster IDs from the payload of nearest neighbor points and maps
+    them to human-readable category names. The most frequent category is returned.
+    """
     if not points:
         return "Other / Rare Issues"
 
@@ -50,6 +59,12 @@ def _get_category_from_points(points) -> str:
 
 
 def initialize_qdrant():
+    """
+    Initialize and seed the qdrant collection with precomputed embeddings.
+    
+    This function: Deletes the existing tickets collection(if exists), creates a new collection
+    with the appropriate vector size and distance metric and inserts all precomputed reduced embeddings
+    """
     try:
         qdrant.delete_collection("tickets")
     except:
@@ -83,12 +98,24 @@ def initialize_qdrant():
 
 
 def predict_priority(text: str) -> str:
+    """
+    Predict the priority level of a support ticket.
+
+    Takes raw input text(title + description) and returns predicted priority label
+    """"
+
     cleaned = clean_text(text)
     X = tfidf_vectorizer.transform([cleaned])
     return prio_model.predict(X)[0]
 
 
 def create_ticket(db: Session, ticket: TicketCreate) -> TicketResponse:
+    """
+    Creates a new support ticket, classify it and store it in both DB and Qdrant.
+
+    Returns persisted ticket with predicted category and priority
+    """
+
     full_text = f"{ticket.title} {ticket.description}"
     cleaned_text = clean_text(full_text)
 
@@ -114,7 +141,7 @@ def create_ticket(db: Session, ticket: TicketCreate) -> TicketResponse:
         priority=priority_pred
     )
     db.add(db_ticket)
-    db.commit()
+    db.commit() 
     db.refresh(db_ticket)
 
     qdrant.upsert(
@@ -147,6 +174,11 @@ def create_ticket(db: Session, ticket: TicketCreate) -> TicketResponse:
 
 
 def classify_ticket(full_text: str):
+    """
+    Classify a ticket without persisting it. 
+    
+    Returns dictionary containing: category(str) and priority(str)
+    """
     cleaned_text = clean_text(full_text)
     reduced_vector = _embed_and_reduce(cleaned_text)
 
