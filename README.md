@@ -1,6 +1,6 @@
 # Support Ticket Intelligence Assistant
 
-An unsupervised ML system that automatically classifies support tickets into meaningful categories using semantic embeddings and vector similarity search — no labeled training data required.
+An unsupervised ML system that automatically classifies support tickets into meaningful categories using semantic embeddings and vector similarity search.
 
 ---
 
