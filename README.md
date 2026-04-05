@@ -89,7 +89,7 @@ support-ticket-assistant/
 ├── Dockerfile.streamlit
 ├── docker-compose.yml
 ├── requirements.txt
-└── .env.example
+└── .env
 ```
 
 ---
