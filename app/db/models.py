@@ -2,6 +2,12 @@ from sqlalchemy import Column, Integer, String, DateTime, Text
 from app.core.config import Base  
 
 class Ticket(Base):
+    """
+    SQLAlchemy model representing a support ticket. 
+    
+    This model stores customer-submitted issues along with their classification metadata 
+    such as cateogory and priority.
+    """
     __tablename__ = "tickets"
     
     id = Column(Integer, primary_key=True, index=True)
