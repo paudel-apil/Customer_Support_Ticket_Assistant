@@ -8,6 +8,9 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def get_db():
+    """
+    Provides a database session for request lifecycle
+    """
     db = SessionLocal()
     try:
         yield db
