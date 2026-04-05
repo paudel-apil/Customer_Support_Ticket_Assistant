@@ -118,7 +118,7 @@ support-ticket-assistant/
 ├── Dockerfile.streamlit           # Frontend Docker image
 ├── docker-compose.yml
 ├── requirements.txt
-└── .env.example
+└── .env
 ```
 
 ---
@@ -256,7 +256,7 @@ docker compose down -v
 
 ## Environment Variables
 
-Create a `.env` file based on `.env.example`:
+Create a `.env` file based on `.env`:
 
 ```env
 SECRET_KEY=your-secret-key
