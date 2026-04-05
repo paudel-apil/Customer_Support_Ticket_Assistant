@@ -8,8 +8,10 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - db
-      - qdrant
+      db: 
+        condition: service_healthy
+      qdrant:
+        condition: service_started 
     env_file:
       - .env               
     environment:
@@ -39,6 +41,11 @@ services:
       - "5433:5432"        
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:                                    
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   qdrant:
     image: qdrant/qdrant:latest

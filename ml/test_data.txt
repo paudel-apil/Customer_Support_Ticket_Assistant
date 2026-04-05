@@ -1,0 +1,52 @@
+[
+  {
+    "customer_id": "CUST-1001",
+    "title": "Unable to reset password",
+    "description": "I tried resetting my password multiple times but I never received the reset email."
+  },
+  {
+    "customer_id": "CUST-1002",
+    "title": "Billing discrepancy on latest invoice",
+    "description": "My invoice shows an extra charge that I don’t recognize. Please review and explain."
+  },
+  {
+    "customer_id": "CUST-1003",
+    "title": "App crashes on startup",
+    "description": "The mobile app crashes immediately after opening on my Android device."
+  },
+  {
+    "customer_id": "CUST-1004",
+    "title": "Order not delivered",
+    "description": "My order was marked as delivered, but I have not received the package."
+  },
+  {
+    "customer_id": "CUST-1005",
+    "title": "Unable to update profile information",
+    "description": "I get an error message whenever I try to update my address in my profile."
+  },
+  {
+    "customer_id": "CUST-1006",
+    "title": "Feature request: Dark mode",
+    "description": "It would be great to have a dark mode option in the app for better usability at night."
+  },
+  {
+    "customer_id": "CUST-1007",
+    "title": "Payment failed but money deducted",
+    "description": "My payment did not go through, but the amount was deducted from my bank account."
+  },
+  {
+    "customer_id": "CUST-1008",
+    "title": "Account locked after multiple login attempts",
+    "description": "My account got locked after I entered the wrong password a few times. How can I unlock it?"
+  },
+  {
+    "customer_id": "CUST-1009",
+    "title": "Slow website performance",
+    "description": "The website takes too long to load pages, especially during checkout."
+  },
+  {
+    "customer_id": "CUST-1010",
+    "title": "Incorrect item received",
+    "description": "I ordered a blue shirt but received a different color and size."
+  }
+]

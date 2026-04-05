@@ -78,7 +78,7 @@ def get_similar_tickets_endpoint(
     if not retrieved or not retrieved[0].vector:
         return []
 
-    query_vector = retrieved[0].vector
+    query_vector = retrieved[0].vector  
 
     result = qdrant.query_points(
         collection_name="tickets",
@@ -106,4 +106,3 @@ def get_similar_tickets_endpoint(
             break
 
     return similar
-
