@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.db.models import Ticket
 from app.schemas.ticket import TicketCreate, TicketResponse, TicketListResponse
-from app.services.ticket_services import create_ticket, classify_ticket, qdrant
+from app.services.ticket_services import create_ticket, classify_ticket, qdrant, search_by_keywords
 
 router = APIRouter(prefix="/tickets", tags=["tickets"])
 
@@ -138,3 +138,19 @@ def get_similar_tickets_endpoint(
             break
 
     return similar
+
+@router.post("/search")
+def search_tickets_endpoint(data: dict):
+    """
+    Search tickets by keywords or sentences
+    """
+    try:
+        query = data.get("query", "")
+        if not query:
+            raise HTTPException(status_code = 400, detail = "Query text is requires")
+
+        results = search_by_keywords(query, limit = 10)
+        return {"query": query, "results": results}
+
+    except Exception as e:
+        raise HTTPException(status_code = 500, detail = str(e))

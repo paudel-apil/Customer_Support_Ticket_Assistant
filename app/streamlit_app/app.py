@@ -94,7 +94,33 @@ if st.button("Refresh Tickets"):
         st.error(f"Connection error: {e}")
 
 
-st.header("3. Find Similar Tickets")
+st.header("3. Search by Keywords")
+
+search_query = st.text_input("Enter keywords or sentence", 
+                            placeholder="e.g. billing payment issue, system security, login problem")
+
+if st.button("Search Tickets"):
+    if not search_query.strip():
+        st.warning("Please enter a search query")
+    else:
+        try:
+            r = requests.post(f"{API_URL}/tickets/search", json={"query": search_query}, timeout=10)
+            if r.status_code == 200:
+                data = r.json()
+                results = data.get("results", [])
+                if results:
+                    st.subheader(f"Results for: '{search_query}'")
+                    st.dataframe(pd.DataFrame(results))
+                else:
+                    st.info("No matching tickets found.")
+            else:
+                st.error(f"Search failed: {r.text}")
+        except Exception as e:
+            st.error(f"Connection error: {e}")
+
+
+st.header("4. Find Similar Tickets")
+
 ticket_id = st.number_input("Enter Ticket ID", min_value=1, step=1, value=1)
 
 if st.button("Find Similar Tickets"):
