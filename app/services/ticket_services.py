@@ -193,3 +193,33 @@ def classify_ticket(full_text: str):
     priority_pred = predict_priority(full_text)
 
     return {"category": category, "priority": priority_pred}
+
+def search_by_keywords(keywords_text: str, limit: int = 10):
+    """
+    Search tickets using keywords or sentences.
+    """
+
+    cleaned = clean_text(keywords_text)
+    query_embedding = _embed_and_reduce(cleaned)
+
+    result = qdrant.query_points(
+        collection_name = "tickets",
+        query = query_embedding,
+        limit = limit,
+        with_payload = True
+    )
+
+    points = result.points if hasattr(result, 'points') else result
+
+    tickets = []
+    for point in points:
+        if point.payload:
+            tickets.append({
+                "ticket_id": point.payload.get("ticket_id"),
+                "title": point.payload.get("title"),
+                "description": point.payload.get("description"),
+                "category": point.payload.get("category", "Other / Rare Issues"),
+                "similarity_score": round(point.score, 4)
+            })
+
+    return tickets
