@@ -56,12 +56,15 @@ with st.form("create_form"):
 category_filter = st.selectbox(
     "Filter by Category", 
     ["All", 
-     "Financial Analytics & Investment Insights",
+     "System Performance & Availability",
      "Data Security & Compliance",
-     "Platform Operations & System Performance",
-     "Billing, Payments & Subscription Management",
-     "Platform Integration & Workflow Optimization",
-     "General Operational Support",
+     "Marketing & Digital Strategy",
+     "Financial Analytics & Investment Insights",
+     "Billing, Payments & Subscriptions",
+     "Hardware & End-User Devices",
+     "Network & Connectivity",
+     "General Assistance",
+     "Product & Service Information",
      "Other / Rare Issues"]
 )
 
