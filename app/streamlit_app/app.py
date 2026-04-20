@@ -52,6 +52,7 @@ with st.form("create_form"):
             except Exception as e:
                 st.error(f"Unexpected error: {str(e)}")
 
+st.header("2. List Tickets")
 
 category_filter = st.selectbox(
     "Filter by Category", 
