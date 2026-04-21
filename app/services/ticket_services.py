@@ -7,7 +7,6 @@ from sqlalchemy.orm import Session
 from sentence_transformers import SentenceTransformer
 from qdrant_client.models import PointStruct, VectorParams, Distance
 from joblib import load
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 from app.db.models import Ticket
 from app.schemas.ticket import TicketCreate, TicketResponse
@@ -17,7 +16,7 @@ from app.services.preprocessing import clean_text
 embedder = SentenceTransformer("BAAI/bge-large-en-v1.5")
 
 umap_model = load("ml/artifacts/umap_surrogate.joblib")
-reduced_embeddings = np.load("ml/artifacts/reduced_embeddings.npy")  
+reduced_embeddings = np.load("ml/artifacts/reduced_embeddings.npy")
 meta_cluster_ids = np.load("ml/artifacts/meta_cluster_ids.npy")
 
 with open("ml/artifacts/final_cluster_names.json", "r") as f:
@@ -31,21 +30,14 @@ descriptions = desc_cat_df['description'].tolist()
 
 
 def _embed_and_reduce(text: str) -> list:
-    """
-    Generate a reduced-dimensional embedding for the given ticket description.
-    """
+    """Generate a 5D reduced embedding for the given text."""
     raw = embedder.encode(text, normalize_embeddings=True).reshape(1, -1)
-    reduced = umap_model.predict(raw) 
+    reduced = umap_model.predict(raw)
     return reduced[0].tolist()
 
 
 def _get_category_from_points(points) -> str:
-    """
-    Determine the most likely category from retrieved vector search points. 
-
-    Extracts cluster IDs from the payload of nearest neighbor points and maps
-    them to human-readable category names. The most frequent category is returned.
-    """
+    """Majority vote category from nearest neighbor points."""
     if not points:
         return "Other / Rare Issues"
 
@@ -60,50 +52,67 @@ def _get_category_from_points(points) -> str:
 
 def initialize_qdrant():
     """
-    Initialize and seed the qdrant collection with precomputed embeddings.
-    
-    This function: Deletes the existing tickets collection(if exists), creates a new collection
-    with the appropriate vector size and distance metric and inserts all precomputed reduced embeddings
+    Initialize Qdrant collections.
+    - tickets: training data for classification
+    - user_tickets: production tickets for similar/search
     """
-    try:
-        qdrant.delete_collection("tickets")
-    except:
-        pass
+    existing = [c.name for c in qdrant.get_collections().collections]
+    print(f"Existing collections: {existing}")
 
-    dimension = reduced_embeddings.shape[1] 
-    qdrant.create_collection(
-        collection_name="tickets",
-        vectors_config=VectorParams(size=dimension, distance=Distance.COSINE)
-    )
+    if "tickets" in existing:
+        info = qdrant.get_collection("tickets")
+        print(f"tickets OK — dim={info.config.params.vectors.size}, points={info.points_count}")
+    else:
+        print("Creating tickets collection and seeding training data...")
+        dimension = reduced_embeddings.shape[1]
+        qdrant.create_collection(
+            collection_name="tickets",
+            vectors_config=VectorParams(size=dimension, distance=Distance.COSINE)
+        )
 
-    points = []
-    for i in range(len(reduced_embeddings)):
-        cluster_id = int(meta_cluster_ids[i])
-        key = f"Meta-Group {cluster_id}"
-        category = final_cluster_names.get(key, "Other / Rare Issues")
+        BATCH_SIZE = 500
+        batch = []
+        for i in range(len(reduced_embeddings)):
+            cluster_id = int(meta_cluster_ids[i])
+            key = f"Meta-Group {cluster_id}"
+            category = final_cluster_names.get(key, "Other / Rare Issues")
 
-        points.append(PointStruct(
-            id=i,
-            vector=reduced_embeddings[i].tolist(), 
-            payload={
-                "ticket_id": i,
-                "cluster_id": cluster_id,
-                "category": category,
-                "description": descriptions[i]
-            }
-        ))
+            batch.append(PointStruct(
+                id=i,
+                vector=reduced_embeddings[i].tolist(),
+                payload={
+                    "ticket_id": i,
+                    "cluster_id": cluster_id,
+                    "category": category,
+                    "description": descriptions[i]
+                }
+            ))
 
-    qdrant.upsert(collection_name="tickets", points=points)
-    print(f"Qdrant seeded with {len(points)} points at dimension={dimension}.")
+            if len(batch) == BATCH_SIZE:
+                qdrant.upsert(collection_name="tickets", points=batch)
+                print(f"Seeded {i+1}/{len(reduced_embeddings)}")
+                batch = []
+
+        if batch:
+            qdrant.upsert(collection_name="tickets", points=batch)
+
+        print(f"tickets seeded with {len(reduced_embeddings)} points.")
+
+    if "user_tickets" in existing:
+        info = qdrant.get_collection("user_tickets")
+        print(f"user_tickets OK — dim={info.config.params.vectors.size}, points={info.points_count}")
+    else:
+        print("Creating user_tickets collection...")
+        dimension = reduced_embeddings.shape[1]
+        qdrant.create_collection(
+            collection_name="user_tickets",
+            vectors_config=VectorParams(size=dimension, distance=Distance.COSINE)
+        )
+        print("user_tickets collection created.")
 
 
 def predict_priority(text: str) -> str:
-    """
-    Predict the priority level of a support ticket.
-
-    Takes raw input text(title + description) and returns predicted priority label
-    """"
-
+    """Predict ticket priority using TF-IDF + Logistic Regression."""
     cleaned = clean_text(text)
     X = tfidf_vectorizer.transform([cleaned])
     return prio_model.predict(X)[0]
@@ -111,11 +120,10 @@ def predict_priority(text: str) -> str:
 
 def create_ticket(db: Session, ticket: TicketCreate) -> TicketResponse:
     """
-    Creates a new support ticket, classify it and store it in both DB and Qdrant.
-
-    Returns persisted ticket with predicted category and priority
+    Create, classify and store a new support ticket.
+    - Classification uses tickets collection (training data)
+    - Storage uses user_tickets collection (production data)
     """
-
     full_text = f"{ticket.title} {ticket.description}"
     cleaned_text = clean_text(full_text)
 
@@ -141,26 +149,29 @@ def create_ticket(db: Session, ticket: TicketCreate) -> TicketResponse:
         priority=priority_pred
     )
     db.add(db_ticket)
-    db.commit() 
+    db.commit()
     db.refresh(db_ticket)
 
-    qdrant.upsert(
-        collection_name="tickets",
-        points=[
-            PointStruct(
-                id=db_ticket.id,
-                vector=reduced_vector,
-                payload={
-                    "ticket_id": db_ticket.id,
-                    "title": ticket.title,
-                    "description": ticket.description,
-                    "category": category,
-                    "priority": priority_pred,
-                    "is_user_ticket": True
-                }
-            )
-        ]
-    )
+    try:
+        qdrant.upsert(
+            collection_name="user_tickets",
+            points=[
+                PointStruct(
+                    id=db_ticket.id,
+                    vector=reduced_vector,
+                    payload={
+                        "ticket_id": db_ticket.id,
+                        "title": ticket.title,
+                        "description": ticket.description,
+                        "category": category,
+                        "priority": priority_pred
+                    }
+                )
+            ]
+        )
+        print(f"Ticket {db_ticket.id} pushed to user_tickets")
+    except Exception as e:
+        print(f"user_tickets upsert failed for ticket {db_ticket.id}: {e}")
 
     return TicketResponse(
         id=db_ticket.id,
@@ -174,11 +185,7 @@ def create_ticket(db: Session, ticket: TicketCreate) -> TicketResponse:
 
 
 def classify_ticket(full_text: str):
-    """
-    Classify a ticket without persisting it. 
-    
-    Returns dictionary containing: category(str) and priority(str)
-    """
+    """Classify a ticket without saving it."""
     cleaned_text = clean_text(full_text)
     reduced_vector = _embed_and_reduce(cleaned_text)
 
@@ -194,32 +201,31 @@ def classify_ticket(full_text: str):
 
     return {"category": category, "priority": priority_pred}
 
-def search_by_keywords(keywords_text: str, limit: int = 10):
-    """
-    Search tickets using keywords or sentences.
-    """
 
+def search_by_keywords(keywords_text: str, limit: int = 10):
+    """Search production tickets by keywords or natural language."""
     cleaned = clean_text(keywords_text)
     query_embedding = _embed_and_reduce(cleaned)
 
     result = qdrant.query_points(
-        collection_name = "tickets",
-        query = query_embedding,
-        limit = limit,
-        with_payload = True
+        collection_name="user_tickets",
+        query=query_embedding,
+        limit=limit,
+        with_payload=True
     )
 
     points = result.points if hasattr(result, 'points') else result
-
     tickets = []
+
     for point in points:
-        if point.payload:
-            tickets.append({
-                "ticket_id": point.payload.get("ticket_id"),
-                "title": point.payload.get("title"),
-                "description": point.payload.get("description"),
-                "category": point.payload.get("category", "Other / Rare Issues"),
-                "similarity_score": round(point.score, 4)
-            })
+        if not point.payload:
+            continue
+        tickets.append({
+            "ticket_id": point.payload.get("ticket_id"),
+            "title": point.payload.get("title"),
+            "description": point.payload.get("description"),
+            "category": point.payload.get("category", "Other / Rare Issues"),
+            "similarity_score": round(point.score, 4)
+        })
 
     return tickets
