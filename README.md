@@ -24,7 +24,7 @@ An unsupervised ML system that automatically classifies support tickets into mea
 
 ```
 ┌─────────────────────┐       ┌─────────────────────┐
-│   Streamlit UI      │──────▶│   FastAPI Backend   │
+│   Streamlit UI      │─────▶│    FastAPI Backend  │
 │  (HF Spaces)        │       │   (HF Spaces)       │
 └─────────────────────┘       └──────────┬──────────┘
                                           │
